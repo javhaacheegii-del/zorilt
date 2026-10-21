@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Миний Дадал ба Амьдралын Хэв Маяг Хянагч</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans">
+    <div id="app" class="max-w-6xl mx-auto px-4 py-8">
+        
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-400 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i> Daily Habit Tracker
+                </h1>
+                <p class="text-slate-400 mt-1">Өдөр тутмын хэв маяг, зорилгоо хянаж үр дүнд хүрээрэй</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <input type="month" v-model="selectedMonth" @change="generateDays" 
+                       class="bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg font-medium focus:outline-none focus:border-indigo-500">
+            </div>
+        </header>
+
+        <!-- ӨДРИЙН ЦАГИЙН ХУВААРИЙН СЕКЦ (Өглөө/Орой) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="p-4 bg-amber-500/10 text-amber-400 rounded-lg text-2xl">
+                        <i class="fa-solid fa-sun"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-400 text-sm font-medium">Өглөө босох цаг</h3>
+                        <p class="text-2xl font-bold text-white">{{ schedule.wakeTime || 'Тохируулаагүй' }}</p>
+                    </div>
+                </div>
+                <input type="time" v-model="schedule.wakeTime" @change="saveSchedule"
+                       class="bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg focus:outline-none">
+            </div>
+
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="p-4 bg-indigo-500/10 text-indigo-400 rounded-lg text-2xl">
+                        <i class="fa-solid fa-moon"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-400 text-sm font-medium">Орой унтах цаг</h3>
+                        <p class="text-2xl font-bold text-white">{{ schedule.sleepTime || 'Тохируулаагүй' }}</p>
+                    </div>
+                </div>
+                <input type="time" v-model="schedule.sleepTime" @change="saveSchedule"
+                       class="bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg focus:outline-none">
+            </div>
+        </div>
+
+        <!-- ШИНЭ ДАДАЛ / ЗОРИЛГО НЭМЭХ -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg mb-8">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-indigo-300">
+                <i class="fa-solid fa-plus-circle"></i> Шинэ зорилго / Дадал нэмэх
+            </h2>
+            <form @submit.prevent="addHabit" class="flex flex-col md:flex-row gap-4">
+                <input type="text" v-model="newHabitTitle" placeholder="Зорилгын нэр (Дээ: Хичээл хийх, Утасны хэрэглээ багасгах...)" 
+                       class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" required>
+                
+                <!-- ШИНЭЧИЛСЭН АНГИЛАЛУУД -->
+                <select v-model="newHabitCategory" class="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none">
+                    <option value="Хичээл / Ажил">📚 Хичээл / Ажил</option>
+                    <option value="Утасны хэрэглээ">📱 Утасны хэрэглээ багасгах</option>
+                    <option value="Чөлөөт цаг">🎨 Чөлөөт цаг / Хөгжил</option>
+                    <option value="Дасгал / Эрүүл мэнд">🏃 Дасгал / Эрүүл мэнд</option>
+                    <option value="Санхүү">💰 Санхүү</option>
+                    <option value="Бусад">✨ Бусад</option>
+                </select>
+                
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                    Нэмэх
+                </button>
+            </form>
+        </div>
+
+        <!-- САТАТИСТИК -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg mb-8">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-indigo-300">
+                <i class="fa-solid fa-chart-pie"></i> Сарын Гүйцэтгэлийн Үр Дүн
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-900 p-4 rounded-lg border border-slate-700/50">
+                    <span class="text-slate-400 text-sm">Нийт дадал / зорилтууд</span>
+                    <p class="text-2xl font-bold text-indigo-400">{{ habits.length }}</p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-lg border border-slate-700/50">
+                    <span class="text-slate-400 text-sm">Энэ сард биелүүлсэн давтамж</span>
+                    <p class="text-2xl font-bold text-emerald-400">{{ totalCompletedCount }} удаа</p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-lg border border-slate-700/50">
+                    <span class="text-slate-400 text-sm">Дундаж биелэлтийн хувь</span>
+                    <p class="text-2xl font-bold text-amber-400">{{ overallProgress }}%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ХҮСНЭГТ -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                    <tr class="bg-slate-900/80 border-b border-slate-700 text-slate-300 text-sm">
+                        <th class="p-4 w-64">Зорилго / Дадал</th>
+                        <th class="p-4 w-32">Ангилал</th>
+                        <th v-for="day in daysInMonth" :key="day" class="p-2 text-center w-10 text-xs border-l border-slate-800">
+                            {{ day }}
+                        </th>
+                        <th class="p-4 text-center w-24 border-l border-slate-700">Үр дүн</th>
+                        <th class="p-4 text-center w-16">Үйлдэл</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/50 text-sm">
+                    <tr v-for="(habit, hIndex) in habits" :key="habit.id" class="hover:bg-slate-750/50 transition">
+                        <td class="p-4 font-medium">
+                            <input v-if="habit.isEditing" type="text" v-model="habit.title" @blur="habit.isEditing = false; saveHabits()" @keyup.enter="habit.isEditing = false; saveHabits()" class="bg-slate-900 text-white px-2 py-1 rounded w-full border border-indigo-500 focus:outline-none">
+                            <span v-else @dblclick="habit.isEditing = true" class="cursor-pointer hover:text-indigo-300" title="Засахын тулд 2 удаа дарна уу">
+                                {{ habit.title }}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 bg-slate-700 rounded text-xs text-slate-300">
+                                {{ habit.category }}
+                            </span>
+                        </td>
+                        <td v-for="day in daysInMonth" :key="day" 
+                            class="p-1 text-center border-l border-slate-800 hover:bg-slate-700/30 cursor-pointer"
+                            @click="toggleCheck(habit.id, day)">
+                            <span v-if="isChecked(habit.id, day)" class="text-emerald-400 font-bold text-base">✅</span>
+                            <span v-else class="text-slate-600 hover:text-slate-400">·</span>
+                        </td>
+                        <td class="p-4 text-center border-l border-slate-700 font-bold text-indigo-400">
+                            {{ getHabitProgress(habit.id) }}%
+                        </td>
+                        <td class="p-4 text-center">
+                            <button @click="deleteHabit(habit.id)" class="text-slate-500 hover:text-rose-400 transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr v-if="habits.length === 0">
+                        <td :colspan="daysInMonth + 4" class="p-8 text-center text-slate-500">
+                            Та одоогоор ямар нэг дадал нэмээгүй байна. Дээрх маягтыг ашиглан нэмээрэй!
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    selectedMonth: new Date().toISOString().slice(0, 7),
+                    daysInMonth: 30,
+                    newHabitTitle: '',
+                    newHabitCategory: 'Хичээл / Ажил',
+                    schedule: {
+                        wakeTime: '07:00',
+                        sleepTime: '23:00'
+                    },
+                    habits: [],
+                    logs: {}
+                }
+            },
+            computed: {
+                totalCompletedCount() {
+                    let count = 0;
+                    const prefix = this.selectedMonth;
+                    Object.keys(this.logs).forEach(key => {
+                        if (key.startsWith(prefix) && this.logs[key]) {
+                            count++;
+                        }
+                    });
+                    return count;
+                },
+                overallProgress() {
+                    if (this.habits.length === 0 || this.daysInMonth === 0) return 0;
+                    const maxPossible = this.habits.length * this.daysInMonth;
+                    return Math.round((this.totalCompletedCount / maxPossible) * 100) || 0;
+                }
+            },
+            mounted() {
+                this.loadData();
+                this.generateDays();
+            },
+            methods: {
+                generateDays() {
+                    const [year, month] = this.selectedMonth.split('-');
+                    this.daysInMonth = new Date(year, month, 0).getDate();
+                },
+                addHabit() {
+                    if (!this.newHabitTitle.trim()) return;
+                    this.habits.push({
+                        id: Date.now(),
+                        title: this.newHabitTitle,
+                        category: this.newHabitCategory,
+                        isEditing: false
+                    });
+                    this.newHabitTitle = '';
+                    this.saveHabits();
+                },
+                deleteHabit(id) {
+                    if (confirm('Та энэ дадлыг устгахдаа итгэлтэй байна уу?')) {
+                        this.habits = this.habits.filter(h => h.id !== id);
+                        this.saveHabits();
+                    }
+                },
+                getLogKey(habitId, day) {
+                    const formattedDay = String(day).padStart(2, '0');
+                    return `${this.selectedMonth}-${formattedDay}_${habitId}`;
+                },
+                toggleCheck(habitId, day) {
+                    const key = this.getLogKey(habitId, day);
+                    this.logs[key] = !this.logs[key];
+                    this.saveLogs();
+                },
+                isChecked(habitId, day) {
+                    const key = this.getLogKey(habitId, day);
+                    return !!this.logs[key];
+                },
+                getHabitProgress(habitId) {
+                    let count = 0;
+                    for (let day = 1; day <= this.daysInMonth; day++) {
+                        if (this.isChecked(habitId, day)) count++;
+                    }
+                    return Math.round((count / this.daysInMonth) * 100) || 0;
+                },
+                saveHabits() {
+                    localStorage.setItem('ht_habits', JSON.stringify(this.habits));
+                },
+                saveLogs() {
+                    localStorage.setItem('ht_logs', JSON.stringify(this.logs));
+                },
+                saveSchedule() {
+                    localStorage.setItem('ht_schedule', JSON.stringify(this.schedule));
+                },
+                loadData() {
+                    const savedHabits = localStorage.getItem('ht_habits');
+                    const savedLogs = localStorage.getItem('ht_logs');
+                    const savedSchedule = localStorage.getItem('ht_schedule');
+
+                    if (savedHabits) this.habits = JSON.parse(savedHabits);
+                    if (savedLogs) this.logs = JSON.parse(savedLogs);
+                    if (savedSchedule) this.schedule = JSON.parse(savedSchedule);
+
+                    if (!savedHabits) {
+                        this.habits = [
+                            { id: 1, title: '📖 Хичээл хийх (2 цаг)', category: 'Хичээл / Ажил', isEditing: false },
+                            { id: 2, title: '📱 Утасны хэрэглээ багасгах (< 2 цаг)', category: 'Утасны хэрэглээ', isEditing: false },
+                            { id: 3, title: '🎨 Чөлөөт цагаа зөв өнгөрөөх', category: 'Чөлөөт цаг', isEditing: false }
+                        ];
+                        this.saveHabits();
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
